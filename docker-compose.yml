@@ -1,0 +1,37 @@
+services:
+  # --- DATA LAYER (STATEFUL) ---
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 13042006
+      POSTGRES_DB: ecommerce
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - ecom_network
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redisdata:/data
+    networks:
+      - ecom_network
+
+  # --- TEMPORARILY DISABLED FOR LOCAL DEVELOPMENT ---
+  # core-api:
+  #   build: ...
+  # worker:
+  #   build: ...
+  # nginx:
+  #   image: ...
+
+networks:
+  ecom_network:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:
