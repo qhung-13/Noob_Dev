@@ -3,6 +3,7 @@ import cors from "cors";
 import { authRouter } from "@/modules/auth/auth.routes";
 // import { productRouter } from "@/modules/product/product.routes";
 import { cartRouter } from "@/modules/cart/cart.routes";
+import { orderRouter } from "@/modules/order/order.routes";
 import { errorHandler } from "@/common/middleware/errorHandler.middleware";
 
 export function createApp() {
@@ -13,9 +14,10 @@ export function createApp() {
 
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
-    app.use("/api/v1/auth", authRouter);
+  app.use("/api/v1/auth", authRouter);
   //   app.use("/api/v1/products", productRouter);
   app.use("/api/v1/cart", cartRouter);
+  app.use("/api/v1/order", orderRouter);
 
   app.use((_req, res) => {
     res
