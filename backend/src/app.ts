@@ -5,11 +5,13 @@ import { authRouter } from "@/modules/auth/auth.routes";
 import { cartRouter } from "@/modules/cart/cart.routes";
 import { orderRouter } from "@/modules/order/order.routes";
 import { errorHandler } from "@/common/middleware/errorHandler.middleware";
+import { webhookRouter } from "@/modules/webhook/webhook.routes";
 
 export function createApp() {
   const app = express();
 
   app.use(cors());
+  app.use("api/v1/webhooks/stripe", express.raw({ type: "application/json" }));
   app.use(express.json());
 
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
@@ -18,6 +20,7 @@ export function createApp() {
   //   app.use("/api/v1/products", productRouter);
   app.use("/api/v1/cart", cartRouter);
   app.use("/api/v1/order", orderRouter);
+  app.use("/api/v1/webhooks", webhookRouter);
 
   app.use((_req, res) => {
     res
