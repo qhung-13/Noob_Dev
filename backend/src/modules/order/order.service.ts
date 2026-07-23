@@ -4,6 +4,7 @@ import {
   NotFoundError,
   AppError,
 } from "@/common/errors/AppError";
+import { createCheckoutSession } from "./stripe.helper";
 
 export const createOrderFromCartService = async (
   userId: string,
@@ -29,7 +30,7 @@ export const createOrderFromCartService = async (
     0,
   );
 
-  const newOrder = await prisma.$transaction(async (tx) => {
+  const order = await prisma.$transaction(async (tx) => {
     for (const item of cart.items) {
       const updatedProduct = await tx.product.updateMany({
         where: {
@@ -48,7 +49,7 @@ export const createOrderFromCartService = async (
       }
     }
 
-    const order = await tx.order.create({
+    const createdOrder = await tx.order.create({
       data: {
         userId: userId,
         totalAmount: totalAmount,
@@ -57,25 +58,47 @@ export const createOrderFromCartService = async (
       },
     });
 
-    const orderItemsData = cart.items.map((item) => ({
-      orderId: order.id,
-      productId: item.productId,
-      quantity: item.quantity,
-      priceAtPurchase: item.product.price,
-    }));
-
     await tx.orderItem.createMany({
-      data: orderItemsData,
+      data: cart.items.map((item) => ({
+        orderId: createdOrder.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        priceAtPurchase: item.product.price,
+      })),
     });
 
     await tx.cartItem.deleteMany({
       where: { cartId: cart.id },
     });
 
-    return order;
+    return createdOrder;
   });
 
-  return newOrder;
+  const session = await createCheckoutSession({
+    orderId: order.id,
+    amount: Math.round(totalAmount * 100),
+    currency: "usd",
+  });
+
+  await prisma.paymentIntent.create({
+    data: {
+      orderId: order.id,
+      stripeSessionId: session.id,
+      stripePaymentIntentId: (session.payment_intent as string) ?? "",
+      status: "PENDING",
+      amount: totalAmount,
+    },
+  });
+
+  if (!session.url) {
+    throw new AppError(
+      "Failed to create checkout session",
+      500,
+      "STRIPE_ERROR",
+    );
+  }
+
+  return { order, checkoutUrl: session.url };
 };
 
 export const getUserOrderService = async (userId: string) => {

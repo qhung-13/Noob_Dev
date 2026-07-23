@@ -11,6 +11,8 @@ const envSchema = z.object({
     .string()
     .min(16, "JWT_ACCESS_SECRET must be at least 16 chars"),
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
+  STRIPE_SECRET_KEY: z.string(),
+  STRIPE_WEBHOOK_SECRET: z.string(),
 });
 
 const parsed = envSchema.safeParse(process.env);
