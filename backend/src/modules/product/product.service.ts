@@ -9,7 +9,9 @@ import type {
 } from "./product.dto";
 
 export const listProductsService = async (query: ListProductsQuery) => {
-  const { page, limit, categoryId, search } = query;
+  const page = query.page ? Number(query.page) : 1;
+  const limit = query.page ? Number(query.limit) : 10;
+  const { categoryId, search } = query;
   const skip = (page - 1) * limit;
 
   const whereCondition: Prisma.ProductWhereInput = {
