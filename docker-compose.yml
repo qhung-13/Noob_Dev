@@ -19,6 +19,8 @@ services:
       - redisdata:/data
     networks:
       - ecom_network
+    ports:
+      - "6379:6379"
 
   # --- TEMPORARILY DISABLED FOR LOCAL DEVELOPMENT ---
   # core-api:
