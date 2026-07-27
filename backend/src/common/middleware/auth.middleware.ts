@@ -8,14 +8,6 @@ export interface AuthPayload {
   role: "CUSTOMER" | "ADMIN";
 }
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthPayload;
-    }
-  }
-}
-
 export const authGuard = (req: Request, _res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
