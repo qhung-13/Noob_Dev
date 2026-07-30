@@ -1,7 +1,5 @@
 import prisma from "@/config/prisma";
 import Stripe from "stripe";
-import { createCheckoutSession } from "@/modules/order/stripe.helper";
-import { ConflictError } from "@/common/errors/AppError";
 
 export const handlerStripeEvent = async (event: Stripe.Event) => {
   if (event.type !== "checkout.session.completed") {
@@ -18,11 +16,13 @@ export const handlerStripeEvent = async (event: Stripe.Event) => {
     return;
   }
 
-  const existingEvent = await prisma.processedWebhookEvent.findUnique({
-    where: { stripeEventId: event.id },
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { user: true },
   });
 
-  if (existingEvent) {
+  if (!order) {
+    console.error(`[webhook] Order not found: ${orderId}`);
     return;
   }
 
@@ -31,41 +31,35 @@ export const handlerStripeEvent = async (event: Stripe.Event) => {
       await tx.processedWebhookEvent.create({
         data: { stripeEventId: event.id },
       });
-    } catch (error) {
+    } catch {
       console.log(`[webhook] event ${event.id} already processed, skipping`);
       return;
     }
 
     const updateOrder = await tx.order.updateMany({
-      where: {
-        id: orderId,
-        status: "PENDING",
-      },
-      data: {
-        status: "PAID",
-      },
+      where: { id: orderId, status: "PENDING" },
+      data: { status: "PAID" },
     });
 
     if (updateOrder.count === 0) {
-      console.warn("");
+      console.warn(
+        `[webhook] order ${orderId} not in PENDING state, skip status update`,
+      );
     }
 
     await tx.paymentIntent.updateMany({
-      where: {
-        orderId: orderId,
-      },
-      data: {
-        status: "SUCCEEDED",
-      },
+      where: { orderId },
+      data: { status: "SUCCEEDED" },
     });
 
     await tx.outboxEvent.create({
       data: {
         eventType: "order.paid",
         payload: {
-          orderId: orderId,
-          userId: userId || "unknown",
+          orderId,
+          userId: userId ?? "unknown",
           stripeSessionId: session.id,
+          customerEmail: order.user.email,
         },
         status: "PENDING",
         correlationId: event.id,
