@@ -10,7 +10,7 @@ import type {
 
 export const listProductsService = async (query: ListProductsQuery) => {
   const page = query.page ? Number(query.page) : 1;
-  const limit = query.page ? Number(query.limit) : 10;
+  const limit = query.limit ? Number(query.limit) : 10;
   const { categoryId, search } = query;
   const skip = (page - 1) * limit;
 
