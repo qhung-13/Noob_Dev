@@ -19,7 +19,7 @@ export function createApp() {
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/products", productRouter);
   app.use("/api/v1/cart", cartRouter);
-  app.use("/api/v1/order", orderRouter);
+  app.use("/api/v1/orders", orderRouter);
   app.use("/api/v1/webhooks", webhookRouter);
 
   app.use((_req, res) => {
