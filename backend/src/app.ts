@@ -6,6 +6,7 @@ import { cartRouter } from "@/modules/cart/cart.routes";
 import { orderRouter } from "@/modules/order/order.routes";
 import { errorHandler } from "@/common/middleware/errorHandler.middleware";
 import { webhookRouter } from "@/modules/webhook/webhook.routes";
+import { generalLimiter } from "@/common/middleware/rateLimiter.middleware";
 
 export function createApp() {
   const app = express();
@@ -16,6 +17,7 @@ export function createApp() {
 
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
+  app.use("/api/v1", generalLimiter);
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/products", productRouter);
   app.use("/api/v1/cart", cartRouter);
