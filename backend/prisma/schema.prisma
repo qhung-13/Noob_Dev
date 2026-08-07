@@ -67,6 +67,7 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime?
+  searchVector Unsupported("tsvector")? @map("search_vector")
 
   category   Category    @relation(fields: [categoryId], references: [id])
   cartItems  CartItem[]

@@ -1,5 +1,5 @@
 import prisma from "@/config/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, Product } from "@prisma/client";
 import { NotFoundError } from "@/common/errors/AppError";
 import { removeUndefined } from "@/common/utils/removeUndefined";
 import type {
@@ -14,26 +14,53 @@ export const listProductsService = async (query: ListProductsQuery) => {
   const { categoryId, search } = query;
   const skip = (page - 1) * limit;
 
-  const whereCondition: Prisma.ProductWhereInput = {
-    deletedAt: null,
-    ...(categoryId && { categoryId }),
-    ...(search && {
-      OR: [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-      ],
-    }),
-  };
+  let products: Product[];
+  let totalCount;
 
-  const [products, totalCount] = await Promise.all([
-    prisma.product.findMany({
-      where: whereCondition,
-      skip,
-      take: limit,
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.product.count({ where: whereCondition }),
-  ]);
+  if (search) {
+    const conditions = [
+      Prisma.sql`"deletedAt" IS NULL`,
+      Prisma.sql`"search_vector" @@ plainto_tsquery('simple', ${search})`,
+    ];
+
+    if (categoryId) {
+      conditions.push(Prisma.sql`"categoryId" = ${categoryId}`);
+    }
+
+    const whereClause = Prisma.join(conditions, " AND ");
+
+    products = await prisma.$queryRaw<Product[]>`
+      SELECT id, name, description, price, stock, "imageUrl", "categoryId", "createdAt", "updatedAt", "deletedAt"
+      FROM "products"
+      WHERE ${whereClause}
+      ORDER BY ts_rank("search_vector", plainto_tsquery('simple', ${search})) DESC, "createdAt" DESC
+      LIMIT ${limit} OFFSET ${skip}
+`;
+
+    const countResult = await prisma.$queryRaw<{ total: bigint }[]>`
+      SELECT COUNT(*) as total FROM "products"
+      WHERE ${whereClause}
+    `;
+    totalCount = Number(countResult[0]?.total || 0);
+  } else {
+    const whereCondition: Prisma.ProductWhereInput = {
+      deletedAt: null,
+      ...(categoryId && { categoryId }),
+    };
+
+    const [prismaProducts, prismaTotal] = await Promise.all([
+      prisma.product.findMany({
+        where: whereCondition,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.product.count({ where: whereCondition }),
+    ]);
+
+    products = prismaProducts;
+    totalCount = prismaTotal;
+  }
 
   return {
     products,
