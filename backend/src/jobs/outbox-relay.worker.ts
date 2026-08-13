@@ -1,5 +1,6 @@
 import prisma from "@/config/prisma";
 import { notificationQueue } from "./queues/notification.queue";
+import { logger } from "@/config/logger";
 
 const relayOutboxEvents = async () => {
   try {
@@ -27,15 +28,18 @@ const relayOutboxEvents = async () => {
           },
         });
 
-        console.log(
+        logger.info(
           `[Outbox] published event ${event.id} (${event.eventType})`,
         );
       } catch (error) {
-        console.error(`[Outbox] failed to publish event ${event.id}:`, error);
+        logger.error(
+          error as Error,
+          `[Outbox] failed to publish event ${event.id}`,
+        );
       }
     }
   } catch (error) {
-    console.error(error);
+    logger.error(error as Error, "[Outbox] Critical error in relay mechanism");
   }
 };
 
@@ -47,6 +51,6 @@ const startPolling = () => {
 };
 
 export const startOutboxRelay = () => {
-  console.log("[Outbox] Bắt đầu lắng nghe sự kiện...");
+  logger.info("[Outbox] Bắt đầu lắng nghe sự kiện...");
   startPolling();
 };
