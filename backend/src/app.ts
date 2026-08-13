@@ -7,10 +7,12 @@ import { orderRouter } from "@/modules/order/order.routes";
 import { errorHandler } from "@/common/middleware/errorHandler.middleware";
 import { webhookRouter } from "@/modules/webhook/webhook.routes";
 import { generalLimiter } from "@/common/middleware/rateLimiter.middleware";
+import { requestLogger } from "@/common/middleware/requestLogger.middleware";
 
 export function createApp() {
   const app = express();
 
+  app.use(requestLogger);
   app.use(cors());
   app.use("api/v1/webhooks/stripe", express.raw({ type: "application/json" }));
   app.use(express.json());
