@@ -1,9 +1,10 @@
+import { logger } from "@/config/logger";
 import prisma from "@/config/prisma";
 import Stripe from "stripe";
 
 export const handlerStripeEvent = async (event: Stripe.Event) => {
   if (event.type !== "checkout.session.completed") {
-    console.log(`[webhook] ignored event type: ${event.type}`);
+    logger.info(`[webhook] ignored event type: ${event.type}`);
     return;
   }
 
@@ -12,7 +13,7 @@ export const handlerStripeEvent = async (event: Stripe.Event) => {
   const userId = session.metadata?.userId;
 
   if (!orderId) {
-    console.error(`[webhook] missing orderId in metadata, event ${event.id}`);
+    logger.error(`[webhook] missing orderId in metadata, event ${event.id}`);
     return;
   }
 
@@ -22,7 +23,7 @@ export const handlerStripeEvent = async (event: Stripe.Event) => {
   });
 
   if (!order) {
-    console.error(`[webhook] Order not found: ${orderId}`);
+    logger.error(`[webhook] Order not found: ${orderId}`);
     return;
   }
 
@@ -32,7 +33,7 @@ export const handlerStripeEvent = async (event: Stripe.Event) => {
         data: { stripeEventId: event.id },
       });
     } catch {
-      console.log(`[webhook] event ${event.id} already processed, skipping`);
+      logger.error(`[webhook] event ${event.id} already processed, skipping`);
       return;
     }
 
@@ -42,7 +43,7 @@ export const handlerStripeEvent = async (event: Stripe.Event) => {
     });
 
     if (updateOrder.count === 0) {
-      console.warn(
+      logger.warn(
         `[webhook] order ${orderId} not in PENDING state, skip status update`,
       );
     }
